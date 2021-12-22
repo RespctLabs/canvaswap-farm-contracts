@@ -1,26 +1,26 @@
 
 pragma solidity 0.6.12;
 
+import '@pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol';
 import "./RespctToken.sol";
 
-contract SafeCakeTransfer {
+contract SafeRespctTransfer is Ownable{
 
-    // SafeCakeTransfer is a library that allows to transfer tokens from one address to another
-    CakeToken public cake;
+    // SafeRespctTransfer is a library that allows to transfer tokens from one address to another
+    RespctToken public respct;
 
-    constructor(
-            CakeToken _cake
-        ) public {
-            cake = _cake;
+    constructor(RespctToken _respct ) public {
+        respct = _respct;
+    }
+
+    // Safe respct transfer function, just in case if rounding error causes pool to not have enough RESPCTs.
+    function safeRespctTransfer(address _to, uint256 _amount) public onlyOwner {
+        uint256 respctBal = respct.balanceOf(address(this));
+        if (_amount > respctBal) {
+            respct.transfer(_to, respctBal);
+        } else {
+            respct.transfer(_to, _amount);
         }
-
-        // Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.
-        function safeCakeTransfer(address _to, uint256 _amount) public onlyOwner {
-            uint256 cakeBal = cake.balanceOf(address(this));
-            if (_amount > cakeBal) {
-                cake.transfer(_to, cakeBal);
-            } else {
-                cake.transfer(_to, _amount);
-            }
-        }
+    }
+    
 }

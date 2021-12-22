@@ -71,7 +71,6 @@ contract MasterChef is Ownable {
     uint256 public BONUS_MULTIPLIER = 1;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
-
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
@@ -87,7 +86,7 @@ contract MasterChef is Ownable {
 
     constructor(
         RespctToken _respct,
-        SyrupBar _safe,
+        SafeRespctTransfer _safe,
         address _devaddr,
         uint256 _respctPerBlock,
         uint256 _startBlock) public {

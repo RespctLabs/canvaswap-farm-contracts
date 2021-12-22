@@ -46,7 +46,7 @@ contract Timelock {
     }
 
     // XXX: function() external payable { }
-    receive() external payable { }
+    function receive() external payable { }
 
     function setDelay(uint delay_) public {
         require(msg.sender == address(this), "Timelock::setDelay: Call must come from Timelock.");
