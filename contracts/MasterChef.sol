@@ -120,6 +120,7 @@ contract MasterChef is Ownable {
     {
         uint256 length = poolInfo.length;
         if((length > 0 && length % 50 == 0) || length == 15){
+            
             cakePerBlock = cakePerBlockList[++STATE];
         }
         if (_withUpdate) {
