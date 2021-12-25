@@ -39,7 +39,6 @@ contract MasterChef is Ownable {
     struct UserInfo {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
-        address userAddress;
     }
 
     // Info of each pool.
@@ -48,7 +47,6 @@ contract MasterChef is Ownable {
         uint256 allocPoint;       // How many allocation points assigned to this pool. CAKEs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that CAKEs distribution occurs.
         uint256 accCakePerShare; // Accumulated CAKEs per share, times 1e12. See below.
-        uint256 numberOfInvestors;
     }
 
 
@@ -66,13 +64,12 @@ contract MasterChef is Ownable {
     IMigratorChef public migrator;
 
     uint256 public STATE;
+    uint256 pubic removedPools;
     uint[14] public cakePerBlockList = [1, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39];
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
-    mapping(uint256 => mapping(uint256 => UserInfo)) public newUserInfo;
-    mapping (uint256 => uint256) public totalUsers;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when CAKE mining starts.
@@ -99,7 +96,6 @@ contract MasterChef is Ownable {
             allocPoint: 1000,
             lastRewardBlock: startBlock,
             accCakePerShare: 0,
-            numberOfInvestors: 0
         }));
         totalAllocPoint = 1000;
         STATE = 0;
@@ -120,7 +116,6 @@ contract MasterChef is Ownable {
     {
         uint256 length = poolInfo.length;
         if((length > 0 && length % 50 == 0) || length == 15){
-            
             cakePerBlock = cakePerBlockList[++STATE];
         }
         if (_withUpdate) {
@@ -133,7 +128,6 @@ contract MasterChef is Ownable {
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
             accCakePerShare: 0,
-            numberOfInvestors: 0
         }));
         updateStakingPool();
     }
@@ -141,7 +135,7 @@ contract MasterChef is Ownable {
     // Update the given pool's CAKE allocation point. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
         if(_allocPoint == 0){
-            removePool(_pid);
+            removedPools++;
         }
         if (_withUpdate) {
             massUpdatePools();
@@ -152,28 +146,6 @@ contract MasterChef is Ownable {
             totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
             updateStakingPool();
         }
-    }
-    function removePool(uint256 _pid) internal {
-        uint256 length = poolInfo.length;
-        require(((_pid < length) && (_pid > 0)),"Not a valid PID");
-        // Fist updating the pool to be removed so that the accCakePerShare is adjusted before
-        // giving rewards to users. 
-        updatePool(_pid);
-        PoolInfo storage pool = poolInfo[_pid];
-        for(uint256 id = 0; id < pool.numberOfInvestors; id++)
-        {
-            UserInfo storage user = newUserInfo[_pid][id];
-            uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) 
-            {
-                safeCakeTransfer(address(user.userAddress), pending);
-            }
-            pool.lpToken.safeTransfer(address(user.userAddress), user.amount);
-            emit EmergencyWithdraw(msg.sender, _pid, user.amount);
-            user.amount = 0;
-            user.rewardDebt = 0;
-        }
-        delete poolInfo[_pid];
     }
     function updateStakingPool() internal {
         uint256 length = poolInfo.length;
@@ -257,12 +229,6 @@ contract MasterChef is Ownable {
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-
-        // Newly added code to ensure that the number of investors for each pool
-        // is updated once a new users deposits to the pool. 
-        if(user.amount == 0){
-            pool.numberOfInvestors++;
-        }
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
